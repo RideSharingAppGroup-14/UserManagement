@@ -1,6 +1,7 @@
 package com.example.UserManagement.controllers;
 
 import com.example.UserManagement.Dto.LoginMetaData;
+import com.example.UserManagement.Dto.LogoutMetaData;
 import com.example.UserManagement.Entities.User;
 import com.example.UserManagement.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,5 +26,10 @@ public class AuthController {
     @PostMapping("/login")
     public String login(@RequestBody LoginMetaData loginMetaData){
         return authService.login(loginMetaData);
+    }
+
+    @PostMapping("/logout")
+    public void logout(@RequestBody LogoutMetaData logoutMetaData){
+        authService.logout(logoutMetaData.getToken());
     }
 }

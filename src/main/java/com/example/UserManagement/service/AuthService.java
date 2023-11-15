@@ -11,6 +11,9 @@ import com.example.UserManagement.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,11 +35,14 @@ public class AuthService {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private SessionRepository sessionRepository;
 
+    private KeyGenService keyGenService;
+
     @Autowired
-    public AuthService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, SessionRepository sessionRepository){
+    public AuthService(UserRepository userRepository,KeyGenService keyGenService, BCryptPasswordEncoder bCryptPasswordEncoder, SessionRepository sessionRepository){
         this.userRepository=userRepository;
         this.bCryptPasswordEncoder=bCryptPasswordEncoder;
         this.sessionRepository=sessionRepository;
+        this.keyGenService=keyGenService;
     }
 
     public User registerUser(User user){
@@ -58,7 +65,7 @@ public class AuthService {
             throw new RuntimeException("Password is Incorrect");
         }
         MacAlgorithm alg = Jwts.SIG.HS256; //or HS384 or HS256
-        SecretKey key = alg.key().build();
+
         Map<String,Object> jsonforJWT = new HashMap<>();
         jsonforJWT.put("email",user.getEmail());
         jsonforJWT.put("id",user.getId());
@@ -68,10 +75,10 @@ public class AuthService {
         long expirationTimeInMillis = System.currentTimeMillis() + (24 * 60 * 60 * 1000); // 24 hours in milliseconds
 
         // Set the "exp" claim in the JWT payload
-        jsonforJWT.put("exp", new Date(expirationTimeInMillis));
+        jsonforJWT.put("exp", (expirationTimeInMillis));
         // Create the compact JWS:
         String jws = Jwts.builder().claims(jsonforJWT)
-                .signWith(key, alg).compact();
+                .signWith(this.keyGenService.getSignKey(), SignatureAlgorithm.HS256).compact();
         Session session = new Session();
         session.setSessionStatus(SessionStatus.ACTIVE);
         session.setToken(jws);
@@ -84,6 +91,18 @@ public class AuthService {
         return jws;
 
     }
+
+    public void logout(String token){
+        Optional<Session> sessionOptional = sessionRepository.findByToken(token);
+        if (sessionOptional.isEmpty()) {
+            throw new RuntimeException("token invalid");
+        }
+        Session session = sessionOptional.get();
+        session.setSessionStatus(SessionStatus.EXPIRED);
+        sessionRepository.save(session);
+    }
+
+
 
     public Session validate(String token) {
         Optional<Session> sessionOptional = sessionRepository.findByToken(token);

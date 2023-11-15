@@ -3,10 +3,7 @@ package com.example.UserManagement.controllers;
 import com.example.UserManagement.Dto.UserDto;
 import com.example.UserManagement.service.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -20,8 +17,12 @@ public class ProfileController {
         this.profileService=profileService;
     }
 
-    @GetMapping("/id")
+    @GetMapping("/{id}")
     public UserDto getProfile(@PathVariable UUID id){
         return profileService.getUserProfile(id);
+    }
+    @PutMapping("/{id}")
+    public UserDto EditProfile(@PathVariable UUID id,@RequestBody UserDto user){
+        return profileService.editProfile(id,user);
     }
 }
